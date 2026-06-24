@@ -1,0 +1,556 @@
+/* region Base Styling */
+html, body {
+    margin: 0 ;
+    padding: 0 ;
+
+}
+
+ #element {
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+}
+* {
+    margin: 0 ;
+    padding: 0 ;
+    box-sizing: border-box;
+}
+
+
+button{
+    border-radius: 5px;
+    font-size: small;
+}
+
+/* endregion */
+.datacockpit_frontpage_container {
+    display: grid;
+    min-height: 100vh;
+    width: 100vw;
+    grid-template-rows: 5% 25% 10% auto; /* auto statt 30% 40% */
+}
+
+/* region Component Sytling*/
+.datacockpit_component_container {
+    grid-row: 4/4;
+    background-color: #E4EFE9;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(400px, 220px)); /* feste Spaltenbreite */
+    gap: 16px;
+    padding: 16px;
+    justify-content: center; /* zentriert die Karten */
+    align-content: start;
+}
+
+/*region Component searchbar*/
+.filter-bar {
+    grid-row: 3/3;
+    display: flex;
+    gap: 12px; /* Die kleine Lücke zwischen den Elementen */
+    align-items: center;
+    justify-content: center;
+
+    width: 100%;
+    box-sizing: border-box;
+    background-color: #E4EFE9;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px; /* Abstand zwischen Label und Input */
+    flex: 1; /* Sorgt dafür, dass alle Boxen gleich breit sind */
+    min-width: 120px; /* Verhindert, dass die Boxen zu klein werden */
+    max-width: 240px;
+}
+
+.filter-group label {
+    font-size: 14px;
+    font-weight: 500;
+    color: #374151;
+    text-align: left;
+}
+
+.filter-group input,
+.filter-group select {
+    background-color: #ffffff;
+    border: 1px solid #cccccc; /* Die graue Border */
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 14px;
+    color: #1f2937;
+    height: 38px; /* Einheitliche Höhe für Inputs und Dropdown */
+    width: 100%;
+    box-sizing: border-box;
+    outline: none;
+    transition: border-color 0.15s ease;
+}
+
+/* Optionaler Hover-/Focus-Effekt für die Boxen */
+.filter-group input:focus,
+.filter-group select:focus {
+    border-color: #999999;
+}
+
+/* Diskreter Dropdown-Pfeil (Standard-Stil variiert je nach Browser) */
+.filter-group select {
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    /* Fügt einen subtilen Pfeil ganz rechts im Kasten hinzu */
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23888888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    background-size: 16px;
+    padding-right: 32px;
+}
+/* endregion*/
+/* region Component*/
+.component {
+    height: 25vh;
+    min-height: 180px; /* verhindert zu kleines Schrumpfen */
+    width: 400px;      /* feste Breite statt vw */
+    flex-shrink: 0;
+    display: grid;
+    grid-template-rows: 50% 30% 20%;
+    background-color: white;
+    border: 1px solid lightgray;
+    border-radius: 5px;
+}
+
+.component:hover{
+    border: 2px solid black ;
+}
+.component_icon{
+    align-self: center;
+    height: 70%;
+    width: 70%;
+
+}
+.component_top{
+    grid-area: 1 / 1 / 1 / 1 ;
+    display: grid;
+
+    grid-template-columns: 40% 60%;
+    border-bottom: 1px solid lightgray;
+
+
+}
+.component_name{
+
+    grid-area: 1 / 2 / 1 / 2 ;
+    overflow-wrap: break-word ;
+
+
+}
+.component_app,.component_komponente{
+    padding: 2px;
+    margin-left: 5px;
+    border-radius:5px ;
+    font-size: smaller;
+}
+.component_komponente{
+
+    background-color: #86b7fe ;
+
+}
+.component_app{
+    background-color: #198754 ;
+    color: white;
+    font-weight: bolder;
+}
+.tags{
+    display: flex;
+    flex-direction: row;
+    margin-top: 30px;
+    grid-area: 1 / 2 / 1 / 2 ;
+    align-self: center;
+    justify-content: flex-start;
+
+}
+.component_beschreibung{
+    grid-area: 2 / 1 / 2 / 1  ;
+    overflow-wrap: break-word ;
+    border-bottom: 1px solid lightgray;
+
+}
+.component_bottom{
+    display: grid;
+
+    align-items: end;
+
+}
+/*endregion*/
+.delete_data_button{
+    grid-area: 3/1/3/1;
+    color: white;
+    background-color: red;
+    border: 1px solid red;
+    width: 30%;
+
+}
+.show_data_button{
+    grid-area: 3/1/3/1;
+    color: white;
+    background-color: green;
+    border: 1px solid green;
+    width: 30%;
+    justify-self: end;
+
+
+}
+/* endregion */
+
+
+/* region frontpage Head */
+.datacockpit_headline_container{
+    display: flex;
+    height: 100%;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    flex-direction: row;
+    grid-row:2 / 2  ;
+
+}
+.datacockpit_frontpage_headline{
+    display: grid;
+    grid-template-columns: 50% 50%;
+    grid-template-rows: 30% auto;
+    font-size: x-large;
+    justify-self: center;
+}
+.datacockpit_frontpage_video{
+    grid-column: 2/2 ;
+}
+.datacockpit_landingpage_description{
+
+    font-size: smaller;
+    grid-column: 1/1 ;
+}
+.datacockpit_landingpage_head{
+    color: red;
+    grid-column: 1/1 ;
+
+
+}
+/* endregion */
+
+/* region componentSite */
+
+.component_site_container_container{
+    display: grid;
+    grid-template-rows: 10vh auto 25% ;
+    height: 100%;
+    width: 100%;
+    background-color: #E4EFE9;
+}
+.component_site_container {
+    grid-row:2/3 ;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    max-width: 640px;
+    margin: 20px auto;
+    padding: 24px;
+    color: #1e293b;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+}
+
+.site_header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding-bottom: 16px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.site_icon {
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    border-radius: 10px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    object-fit: contain;
+    padding: 6px;
+}
+
+.site_header_text {
+    flex: 1;
+    min-width: 0;
+}
+
+.site_title {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 1.3;
+    color: #0f172a;
+    word-break: break-word;
+}
+
+.site_subject {
+    margin-top: 4px;
+    font-size: 13px;
+    color: #64748b;
+}
+
+.site_status {
+    flex-shrink: 0;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 999px;
+    white-space: nowrap;
+    letter-spacing: 0.02em;
+}
+
+.status_listed {
+    background: #ecfdf5;
+    color: #065f46;
+    border: 1px solid #a7f3d0;
+}
+
+.status_unlisted {
+    background: #fef2f2;
+    color: #991b1b;
+    border: 1px solid #fee2e2;
+}
+
+.site_section {
+    margin-bottom: 24px;
+}
+
+.site_section:last-child {
+    margin-bottom: 0;
+}
+
+.section_title {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #94a3b8;
+    margin: 0 0 12px 0;
+    border-bottom: 1px dashed #e2e8f0;
+    padding-bottom: 4px;
+}
+
+.info_table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.info_table tr:not(:last-child) td {
+    border-bottom: 1px solid #f8fafc;
+}
+
+.info_table td {
+    padding: 10px 6px;
+    vertical-align: middle;
+}
+
+.info_table td.label {
+    width: 38%;
+    color: #64748b;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.description_box {
+    font-size: 14px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 14px 16px;
+    line-height: 1.6;
+    color: #334155;
+}
+
+.empty_value {
+    color: #94a3b8;
+    font-style: italic;
+}
+
+.badge {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 999px;
+    letter-spacing: 0.02em;
+}
+
+.badge_true {
+    background: #ecfdf5;
+    color: #065f46;
+    border: 1px solid #a7f3d0;
+}
+
+.badge_false {
+    background: #fef2f2;
+    color: #991b1b;
+    border: 1px solid #fee2e2;
+}
+
+.tag_chip {
+    display: inline-block;
+    background: #f0fdf4;
+    color: #166534;
+    border: 1px solid #bbf7d0;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 6px;
+    margin: 2px 4px 2px 0;
+}
+
+.sublist {
+    margin: 0;
+    padding-left: 20px;
+    font-size: 13px;
+    color: #475569;
+}
+
+.sublist li {
+    margin-bottom: 4px;
+    word-break: break-word;
+}
+
+.code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 12.5px;
+    background: #f1f5f9;
+    color: #0f172a;
+    padding: 2px 6px;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+    word-break: break-all;
+}
+
+code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 12.5px;
+    background: #f1f5f9;
+    color: #0f172a;
+    padding: 2px 6px;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+    word-break: break-all;
+}
+
+.dropdown_container {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 50;
+    margin-top: 6px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+    padding: 4px;
+    min-width: 120px;
+}
+
+.set_button, .get_button, .del_button {
+    /* Beibehalten für strukturelle Integrität */
+}
+
+.set_button:checked ~ .dropdown_container,
+.get_button:checked ~ .dropdown_container,
+.del_button:checked ~ .dropdown_container {
+    display: block;
+}
+
+.fake_button {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    background: #ffffff;
+    font-size: 13px;
+    font-weight: 500;
+    color: #334155;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.15s ease;
+}
+
+.fake_button:hover {
+    background: #f8fafc;
+    border-color: #94a3b8;
+    color: #0f172a;
+}
+
+.access_toggle input {
+    display: none;
+}
+
+/* --- Optionale funktionale Ergänzungen für Kind-Elemente im Template --- */
+.access_toggle {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown_container button {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: none;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #475569;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.1s ease;
+}
+
+.dropdown_container button:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+}
+
+.info_table button:not(.dropdown_container button) {
+    font-size: 13px;
+    font-weight: 600;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    border: 1px solid transparent;
+}
+
+.info_table tr:last-child td:first-child button {
+    background: #fef2f2;
+    color: #991b1b;
+    border: 1px solid #fee2e2;
+}
+
+.info_table tr:last-child td:first-child button:hover {
+    background: #fee2e2;
+    border-color: #fca5a5;
+}
+
+.info_table tr:last-child td:last-child button {
+    background: #2563eb;
+    color: #ffffff;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.info_table tr:last-child td:last-child button:hover {
+    background: #1d4ed8;
+}
+
+/* endregion */
