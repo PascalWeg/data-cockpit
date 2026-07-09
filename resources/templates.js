@@ -32,9 +32,14 @@ export function mainLogin() {
 }
 
 
-export function componentSite(data, instance) {
-    data = data || {};
+export function componentSite(data, comp, instance) {
 
+    // State merken ob die Config geladen wurde
+    let configLoaded = false;
+
+    data = data || {};
+    console.log("comp");
+    console.log(comp);
     const agree = data.agree || {};
     const ignore = data.ignore || {};
     const meta = data._ || {};
@@ -99,12 +104,36 @@ export function componentSite(data, instance) {
         instance.element.querySelector(`#${type}`).innerHTML = right;
     }
 
+    const renderConfig = () => { // Lädt die Config seite  indem sie Sichtbar gemacht wird
+        const comment = instance.element.querySelector(".comment_site_container");
+        const component = instance.element.querySelector(".component_site_container");
+        const configButton = instance.element.querySelector("#load_config_button")
+        if (!configLoaded) {
+
+
+            comment.style.display = "grid";
+            component.style.gridColumn = "1/2";
+            configButton.replaceChildren("Config verbegen")
+            configLoaded = true;
+        } else {
+            comment.style.display = "none";
+            component.style.gridColumn = "1/3";
+            configButton.replaceChildren("Komplette Config anzeigen")
+            configLoaded = false;
+        }
+
+
+
+
+
+
+    }
     return html`
         <div class="component_site_container_container">
-            
-        
-    <div class="component_site_container">
 
+            ${instance.renderCommentSite(comp)}
+    <div class="component_site_container">
+        
       <div class="site_header">
         <img class="site_icon" src="${data.icon || ''}" alt="icon" />
         <div class="site_header_text">
@@ -189,7 +218,12 @@ export function componentSite(data, instance) {
             <td>${data.ignore.config.map((item) => {
                 
                 return checkArray(item);
-    })}</td>
+               
+    })}
+                <button id="load_config_button" @click = ${renderConfig} >
+                    "Komplette Config Anzeigen"
+                </button>    
+            </td>
           </tr>
         </table>
       </div>
@@ -273,9 +307,12 @@ export function frontpage(componentArray, instance){
                 <div class="datacockpit_frontpage_headline">
                     <h2 class="datacockpit_landingpage_head">Data-Cockpit</h2>
                     <p class="datacockpit_landingpage_description">Verwende von anderen erstellte Apps als Vorlage für eigene Apps und passe sie dann an deine eigenen individuellen Bedürfnisse an.</p>
-                    <img src="https://ccmjs.github.io/akless-components/cloze/resources/icon.svg" class ="datacockpit_frontpage_video">
+                    <div class ="datacockpit_frontpage_ladeandere" >
+                        Auf der Suche nach Daten, die nicht zu deinen Apps gehören (Zum Beispiel Likes die vergeben wurden)? Klicke den Button!
+                        <button @click=${instance.renderRestSite}}> Klick</button>
+                    </div>
                 </div>
-               
+                
 
                 </img>
                 
@@ -316,7 +353,7 @@ export function frontpage(componentArray, instance){
                 
                 ${componentArray.map((comp, index) => 
                     html`
-                        <div class="component" @click=${() => instance.myFunction(index)}>
+                        <div class="component" @click=${() => instance.myFunction(index, comp)}>
                             <div class="component_top">
                                 <img src=${comp.Icon} class="component_icon">
                                 <h5 class="component_name">
@@ -347,4 +384,659 @@ export function frontpage(componentArray, instance){
 
     //Funktion um die Suchleiste zu benutzen. Topic beschreibt hier was gesucht wird (Titel Werkzeug etc)
 
+}
+export function commentSite(data, instance) {
+
+
+    const config = data.Config || {};
+    const meta = config._ || {};
+    const controls = config.controls || {};
+    const commentEntries = Array.isArray(data.data) ? data.data : [];
+    const kommentareStatus = data.Kommentare;
+    const configKey = Array.isArray(config.key) ? config.key.join(' / ') : (config.key || '–');
+    console.log("CommmentSite")
+    console.log(data)
+
+    const boolBadge = (val) => html `
+        <span class="badge ${val ? 'badge_true' : 'badge_false'}">
+      ${val ? '✓ ja' : '✗ nein'}
+    </span>
+    `;
+
+    const controlLabels = {
+        answer: 'Antworten',
+        delete: 'Löschen',
+        dislike: 'Dislike',
+        edit: 'Bearbeiten',
+        heart: 'Heart'
+    };
+
+    const renderControls = () => {
+        const keys = Object.keys(controls);
+
+        if (keys.length === 0) return html `<div class="empty_value">keine</div>`;
+        return html `
+            <div class="badge_group">
+                ${keys.map(k => html `
+                    <span class="control_badge ${controls[k] ? 'control_on' : 'control_off'}">
+            ${controlLabels[k] || k}: ${controls[k] ? '✓' : '✗'}
+          </span>
+                `)}
+            </div>
+        `;
+    };
+
+    const renderResourceBlock = (label, value) => {
+        if (value === undefined || value === null) {
+            return html `
+                <div class="resource_block">
+                    <div class="resource_label">${label}</div>
+                    <div class="empty_value">–</div>
+                </div>
+            `;
+        }
+        return html `
+            <div class="resource_block">
+                <div class="resource_label">${label}</div>
+                <pre class="json_block">${JSON.stringify(value, null, 2)}</pre>
+            </div>
+        `;
+    };
+
+    const renderCommentEntries = (instance) => {
+        if (commentEntries.length === 0) {
+            return html `<div class="empty_value">Noch keine Kommentar-Einträge vorhanden</div>`;
+        }
+        return html `
+            <div class="comment_grid">
+                ${commentEntries.map((c,index) => html`
+                    <div class="comment_card" id="comment-${index}">
+                        <div class="comment_card_header">
+                            <img class="comment_avatar" src="${c.picture || ''}" alt="avatar" />
+                            <div class="comment_meta">
+                                <div class="comment_user">${c.user || 'Unbekannt'}</div>
+                                <div class="comment_date">${c.created_at || ''}</div>
+                            </div>
+                            <button class="delete_btn" @click=${() =>{  //Kommentar Löschen und in ohne ein render Update erstmal verschwinden lassen
+                                instance.deleteComment("dms2-comment-data", c.key);
+                                let card = instance.element.querySelector(`#comment-${index}`);
+                                card.style.display = "none";
+                            }
+                
+                            }>
+                                🗑
+                            </button>
+                        </div>
+                        <div class="comment_text">${c.text || ''}</div>
+                        <div class="comment_footer">
+                            <code class="comment_key">${Array.isArray(c.key) ? c.key.join(' / ') : ''}</code>
+                        </div>
+                    </div>
+                `)}
+            </div>
+        `;
+    };
+
+    const renderKommentareStatus = () => {
+        const kommentareList = Array.isArray(kommentareStatus) ? kommentareStatus : [];
+        if (kommentareList.length === 0) {
+            return html `<div class="empty_value">Noch keine Kommentare vorhanden</div>`;
+        }
+        return html `
+            <div class="comment_grid">
+                ${kommentareList.map((c,index) => html`
+                    <div class="comment_card" id="realcomment-${index}">
+                        <div class="comment_card_header">
+                            <img class="comment_avatar" src="${c.picture || ''}" alt="avatar" />
+                            <div class="comment_meta">
+                                <div class="comment_user">${c.user || 'Unbekannt'}</div>
+                                <div class="comment_date">${c.created_at || ''}</div>
+                            </div>
+                            <button class="delete_btn" @click=${() => {
+                                instance.deleteComment("dms2-comments", c.key);
+                                let card = instance.element.querySelector(`#realcomment-${index}`);
+                                card.style.display = "none";
+                            }}>
+                                🗑
+                            </button>
+                        </div>
+                        <div class="comment_text">${c.text || ''}</div>
+                        <div class="comment_footer">
+                            <code class="comment_key">${Array.isArray(c.key) ? c.key.join(' / ') : ''}</code>
+                        </div>
+                    </div>
+                `)}
+            </div>
+        `;
+    };
+
+    const renderJSON = (value, depth = 0) => {
+
+        if (value === null || value === undefined) {
+            return html`<span class="empty_value">–</span>`;
+        }
+        if (typeof value === 'boolean') {
+            return boolBadge(value);
+        }
+        if (typeof value !== 'object') {
+            return html`<span>${value}</span>`;
+        }
+        if (Array.isArray(value)) {
+            if (value.length === 0) return html`<span class="empty_value">[ ]</span>`;
+            return html`
+            <div class="rj_array">
+                ${value.map((item, i) => html`
+                    <div class="rj_array_item">
+                        <span class="rj_index">[${i}]</span>
+                        <div class="rj_array_value">${renderJSON(item, depth + 1)}</div>
+                    </div>
+                `)}
+            </div>
+        `;
+        }
+        const keys = Object.keys(value);
+        if (keys.length === 0) return html`<span class="empty_value">{ }</span>`;
+        return html`
+            <table class="info_table ${depth > 0 ? 'rj_nested' : ''}">
+                ${keys.map(k => html`
+                <tr>
+                    <td class="label">${k}</td>
+                    <td>${renderJSON(value[k], depth + 1)}</td>
+                </tr>
+            `)}
+            </table>
+        `;
+    };
+
+    const renderComments = ()  => {
+        return html`
+            <div class="site_section">
+            <h3 class="section_title">Kommentar-Einträge (data)</h3>
+            ${renderCommentEntries(instance)}
+        </div>`
+    }
+
+    return html`
+        <div class="comment_site_container">
+
+            <div class="site_header">
+                <img class="site_icon" src="${data.Icon || ''}" alt="icon" />
+                <div class="site_header_text">
+                    <h2 class="site_title">${data.Titel || 'Ohne Titel'}</h2>
+                    <div class="site_subject">${data.Komponente || ''}</div>
+                </div>
+                <div class="site_status status_neutral">
+                    ${commentEntries.length} Eintrag${commentEntries.length === 1 ? '' : 'e'}
+                </div>
+            </div>
+
+            <div class="site_section">
+                <h3 class="section_title">Beschreibung</h3>
+                <div class="description_box">${data.Beschreibung || '<span class="empty_value">keine Beschreibung</span>'}</div>
+            </div>
+
+            <div class="site_section">
+                <h3 class="section_title">Config – Allgemein</h3>
+                <table class="info_table">
+                    <tr>
+                        <td class="label">App-ID</td>
+                        <td><code>${config.app || '–'}</code></td>
+                    </tr>
+                    <tr>
+                        <td class="label">Key</td>
+                        <td><code>${configKey}</code></td>
+                    </tr>
+                    <tr>
+                        <td class="label">Component</td>
+                        <td>${config.component || '–'}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Erstellt am</td>
+                        <td>${config.created_at || '–'}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Aktualisiert am</td>
+                        <td>${config.updated_at || '–'}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Dark Mode</td>
+                        <td>${boolBadge(!!config.dark)}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Sortierung</td>
+                        <td>${boolBadge(!!config.sort)}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Picture</td>
+                        <td>${config.picture
+                                ? `<a href="${config.picture}" target="_blank" rel="noopener">${config.picture}</a>`
+                                : '<span class="empty_value">–</span>'}</td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="site_section">
+                <h3 class="section_title">Controls</h3>
+                ${renderControls()}
+            </div>
+
+            <div class="site_section">
+                <h3 class="section_title">Daten-Quelle</h3>
+                <table class="info_table">
+                    <tr>
+                        <td class="label">Store</td>
+                        <td>${config.data && Array.isArray(config.data.store) ? JSON.stringify(config.data.store) : '–'}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Key</td>
+                        <td><code>${(config.data && config.data.key) || '–'}</code></td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="site_section">
+                <h3 class="section_title">Ignore</h3>
+                <table class="info_table">
+                    <tr>
+                        <td class="label">Meta</td>
+                        <td>${config.ignore && Array.isArray(config.ignore.meta)
+                                ? `<pre class="json_block">${JSON.stringify(config.ignore.meta, null, 2)}</pre>`
+                                : '<span class="empty_value">–</span>'}</td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="site_section">
+                <h3 class="section_title">Ressourcen (Framework-Referenzen)</h3>
+                <div class="resource_grid">
+                    ${renderResourceBlock('css', config.css)}
+                    ${renderResourceBlock('helper', config.helper)}
+                    ${renderResourceBlock('html', config.html)}
+                    ${renderResourceBlock('lang', config.lang)}
+                    ${renderResourceBlock('libs', config.libs)}
+                    ${renderResourceBlock('text', config.text)}
+                    ${renderResourceBlock('user', config.user)}
+                </div>
+            </div>
+
+            <div class="site_section">
+                <h3 class="section_title">Metadaten ( _ )</h3>
+                <table class="info_table">
+                    <tr>
+                        <td class="label">Realm</td>
+                        <td>${meta.realm || '–'}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Creator</td>
+                        <td>${meta.creator || '–'}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Access – get</td>
+                        <td>${(meta.access && meta.access.get) || '–'}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Access – set</td>
+                        <td>${(meta.access && meta.access.set) || '–'}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Access – del</td>
+                        <td>${(meta.access && meta.access.del) || '–'}</td>
+                    </tr>
+                </table>
+            </div>
+            ${data.Komponente == "comment" ? renderComments(instance) : renderJSON(data.data)}
+            
+
+            <div class="site_section">
+                <h3 class="section_title">Kommentare</h3>
+                ${renderKommentareStatus()}
+            </div>
+
+        </div>
+
+        <style>
+            .comment_site_container {
+                font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+                display: none;
+                max-width: 720px;
+                margin: 0 auto;
+                padding: 16px;
+                color: #1f2933;
+                background: #ffffff;
+                border: 1px solid #e2e8f0;
+                border-radius: 12px;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+                grid-column: 2/3;
+                grid-row: 2/3;
+            }
+
+            .site_header {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding-bottom: 14px;
+                margin-bottom: 14px;
+                border-bottom: 1px solid #e2e8f0;
+            }
+
+            .site_icon {
+                width: 40px;
+                height: 40px;
+                flex-shrink: 0;
+                border-radius: 8px;
+                background: #f1f5f9;
+                object-fit: contain;
+                padding: 4px;
+            }
+
+            .site_header_text {
+                flex: 1;
+                min-width: 0;
+            }
+
+            .site_title {
+                margin: 0;
+                font-size: 18px;
+                font-weight: 600;
+                line-height: 1.3;
+                word-break: break-word;
+            }
+
+            .site_subject {
+                margin-top: 2px;
+                font-size: 13px;
+                color: #64748b;
+            }
+
+            .site_status {
+                flex-shrink: 0;
+                font-size: 12px;
+                font-weight: 600;
+                padding: 4px 10px;
+                border-radius: 999px;
+                white-space: nowrap;
+            }
+
+            .status_neutral {
+                background: #e0e7ff;
+                color: #3730a3;
+            }
+
+            .site_section {
+                margin-bottom: 18px;
+            }
+
+            .site_section:last-child {
+                margin-bottom: 0;
+            }
+
+            .section_title {
+                font-size: 13px;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.04em;
+                color: #475569;
+                margin: 0 0 8px 0;
+            }
+
+            .info_table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 14px;
+            }
+
+            .info_table tr:not(:last-child) td {
+                border-bottom: 1px solid #f1f5f9;
+            }
+
+            .info_table td {
+                padding: 6px 4px;
+                vertical-align: top;
+            }
+
+            .info_table td.label {
+                width: 32%;
+                color: #64748b;
+                font-weight: 500;
+                white-space: nowrap;
+            }
+
+            .description_box {
+                font-size: 14px;
+                background: #f8fafc;
+                border: 1px solid #e2e8f0;
+                border-radius: 8px;
+                padding: 10px 12px;
+                line-height: 1.5;
+            }
+
+            .empty_value {
+                color: #94a3b8;
+                font-style: italic;
+            }
+
+            .badge {
+                display: inline-block;
+                font-size: 12px;
+                font-weight: 600;
+                padding: 2px 8px;
+                border-radius: 999px;
+            }
+
+            .badge_true {
+                background: #dcfce7;
+                color: #166534;
+            }
+
+            .badge_false {
+                background: #fee2e2;
+                color: #991b1b;
+            }
+
+            .badge_group {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 6px;
+            }
+
+            .control_badge {
+                font-size: 12px;
+                font-weight: 600;
+                padding: 3px 10px;
+                border-radius: 999px;
+            }
+
+            .control_on {
+                background: #dcfce7;
+                color: #166534;
+            }
+
+            .control_off {
+                background: #f1f5f9;
+                color: #94a3b8;
+            }
+
+            .resource_grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+                gap: 10px;
+            }
+
+            .resource_block {
+                background: #0f172a;
+                border-radius: 8px;
+                padding: 8px 10px;
+                overflow: hidden;
+            }
+
+            .resource_label {
+                font-size: 11px;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.04em;
+                color: #93c5fd;
+                margin-bottom: 4px;
+            }
+
+            .json_block {
+                margin: 0;
+                font-family: "SF Mono", "Fira Code", Consolas, monospace;
+                font-size: 11.5px;
+                line-height: 1.45;
+                color: #e2e8f0;
+                white-space: pre-wrap;
+                word-break: break-word;
+                max-height: 180px;
+                overflow-y: auto;
+            }
+
+            .json_block_light {
+                background: #f8fafc;
+                border: 1px solid #e2e8f0;
+                border-radius: 8px;
+                padding: 8px 10px;
+                color: #1f2933;
+            }
+
+            .comment_grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+                gap: 12px;
+            }
+
+            .comment_card {
+                border: 1px solid #e2e8f0;
+                border-radius: 10px;
+                padding: 12px;
+                background: #f8fafc;
+            }
+
+            .comment_card_header {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                margin-bottom: 8px;
+            }
+
+            .comment_avatar {
+                width: 28px;
+                height: 28px;
+                border-radius: 50%;
+                object-fit: cover;
+                background: #e2e8f0;
+            }
+
+            .comment_meta {
+                min-width: 0;
+            }
+
+            .comment_user {
+                font-size: 13px;
+                font-weight: 600;
+                line-height: 1.2;
+            }
+
+            .comment_date {
+                font-size: 11px;
+                color: #94a3b8;
+            }
+
+            .comment_text {
+                font-size: 13.5px;
+                line-height: 1.4;
+                margin-bottom: 8px;
+                word-break: break-word;
+            }
+
+            .comment_footer {
+                padding-top: 6px;
+                border-top: 1px solid #e2e8f0;
+            }
+
+            .comment_key {
+                font-size: 10.5px;
+                color: #94a3b8;
+                background: none;
+                padding: 0;
+                word-break: break-all;
+            }
+
+            code {
+                font-size: 13px;
+                background: #f1f5f9;
+                padding: 1px 6px;
+                border-radius: 4px;
+                word-break: break-all;
+            }
+            .comment_card_header {
+                position: relative;
+            }
+
+            .delete_btn {
+                margin-left: auto;
+                flex-shrink: 0;
+                background: none;
+                border: none;
+                cursor: pointer;
+                font-size: 25px;
+                padding: 4px 6px;
+                border-radius: 6px;
+                color: #94a3b8;
+                line-height: 1;
+                transition: background 0.15s, color 0.15s;
+            }
+
+            .delete_btn:hover {
+                background: #fee2e2;
+                color: #dc2626;
+            }
+        </style>
+    `;
+}
+
+export function restSite(rest, instance){
+    console.log("rest")
+    console.log(rest)
+    const renderJSON = (value, depth = 0) => {
+
+        if (value === null || value === undefined) {
+            return html`<span class="empty_value">–</span>`;
+        }
+        if (typeof value === 'boolean') {
+            return boolBadge(value);
+        }
+        if (typeof value !== 'object') {
+            return html`<span>${value}</span>`;
+        }
+        if (Array.isArray(value)) {
+            if (value.length === 0) return html`<span class="empty_value">[ ]</span>`;
+            return html`
+            <div class="rj_array">
+                ${value.map((item, i) => html`
+                    <div class="rj_array_item">
+                        <span class="rj_index">[${i}]</span>
+                        <div class="rj_array_value">${renderJSON(item, depth + 1)}</div>
+                    </div>
+                `)}
+            </div>
+        `;
+        }
+        const keys = Object.keys(value);
+        if (keys.length === 0) return html`<span class="empty_value">{ }</span>`;
+        return html`
+            <table class="info_table ${depth > 0 ? 'rj_nested' : ''}">
+                ${keys.map(k => html`
+                <tr>
+                    <td class="label">${k}</td>
+                    <td>${renderJSON(value[k], depth + 1)}</td>
+                </tr>
+            `)}
+            </table>
+        `;
+    };
+    return html `
+        <div class="rest_container">
+            ${renderJSON(rest)}
+        </div>
+    `
 }

@@ -215,6 +215,8 @@ button{
     flex-direction: row;
     grid-row:2 / 2  ;
 
+
+
 }
 .datacockpit_frontpage_headline{
     display: grid;
@@ -222,20 +224,70 @@ button{
     grid-template-rows: 30% auto;
     font-size: x-large;
     justify-self: center;
+
+
 }
-.datacockpit_frontpage_video{
-    grid-column: 2/2 ;
+.datacockpit_frontpage_ladeandere{
+    grid-column: 2/3 ;
+    font-size: smaller;
+    width: 50%;
+    margin-left: 2vw;
+
 }
 .datacockpit_landingpage_description{
 
     font-size: smaller;
-    grid-column: 1/1 ;
+    grid-column: 1/2 ;
+    width: 50%;
+    justify-self: end;
+    margin-right: 2vw;
 }
 .datacockpit_landingpage_head{
     color: red;
-    grid-column: 1/1 ;
+    grid-column: 1/2 ;
+    justify-self: end;
+    width: 50%;
+    margin-right: 2vw;
 
 
+
+}
+.datacockpit_frontpage_ladeandere button {
+    margin-top: 10px;
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+
+    color: #1f2933;
+    background: #f8fafc;
+
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+
+    cursor: pointer;
+
+    transition: all 0.15s ease-in-out;
+
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+
+.datacockpit_frontpage_ladeandere button:hover {
+    background: #eef2f7;
+    border-color: #cbd5e1;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+    transform: translateY(-1px);
+}
+
+.datacockpit_frontpage_ladeandere button:active {
+    transform: translateY(0px);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+
+.datacockpit_frontpage_ladeandere button:focus {
+    outline: none;
+    border-color: #93c5fd;
+    box-shadow: 0 0 0 3px rgba(147, 197, 253, 0.35);
 }
 /* endregion */
 
@@ -244,12 +296,14 @@ button{
 .component_site_container_container{
     display: grid;
     grid-template-rows: 10vh auto 25% ;
+    grid-template-columns: 40% 60%;
     height: 100%;
     width: 100%;
     background-color: #E4EFE9;
 }
 .component_site_container {
     grid-row:2/3 ;
+    grid-column: 1/3;
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     max-width: 640px;
     margin: 20px auto;
@@ -461,9 +515,7 @@ code {
     min-width: 120px;
 }
 
-.set_button, .get_button, .del_button {
-    /* Beibehalten für strukturelle Integrität */
-}
+
 
 .set_button:checked ~ .dropdown_container,
 .get_button:checked ~ .dropdown_container,
@@ -551,6 +603,39 @@ code {
 
 .info_table tr:last-child td:last-child button:hover {
     background: #1d4ed8;
+}
+
+.rj_array {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.rj_array_item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.rj_index {
+    font-size: 11px;
+    font-weight: 700;
+    color: #94a3b8;
+    font-family: "SF Mono", "Fira Code", Consolas, monospace;
+    padding-top: 2px;
+    white-space: nowrap;
+    min-width: 24px;
+}
+
+.rj_array_value {
+    flex: 1;
+    min-width: 0;
+}
+
+.rj_nested {
+    border-left: 2px solid #e2e8f0;
+    padding-left: 8px;
+    margin-left: 2px;
 }
 
 /* endregion */
