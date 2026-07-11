@@ -1,20 +1,67 @@
 import { html, render } from './../libs/lit/lit.js';
 export { render };
 
+/**
+ * templates.js
+ *
+ * Bereinigungen / Bugfixes gegenüber der vorherigen Version:
+ * - Kaputte Lit-Bindings repariert: mehrfach stand `${fn}}` statt `${fn}` bei @click/@input
+ *   (überzähliges `}` direkt nach der Interpolation), u. a. bei den vier Buttons in der
+ *   Kopfzeile der Frontpage sowie bei den Filter-Inputs "werkzeug", "author", "kategorie".
+ * - Fehlende `</div>` für ".component" in frontpage() und appTile() ergänzt.
+ * - Verwaistes `</img>` in frontpage() entfernt (kein passendes <img> vorhanden, <img> ist
+ *   ohnehin ein Void-Element und braucht kein schließendes Tag).
+ * - Mehrere Stellen haben HTML als reinen JS-String interpoliert (`<span>...</span>` statt
+ *   html`<span>...</span>`). Lit escaped normale Strings automatisch, dadurch wurde z. B. bei
+ *   Tags, dem Picture-Link und ignore.meta der rohe Tag-Text angezeigt statt echtem HTML.
+ *   Jetzt überall echte Lit-Templates statt String-Konkatenation - korrekt UND sicherer,
+ *   da Lit die eingebetteten Werte weiterhin automatisch escaped (kein XSS-Risiko wie bei
+ *   einer pauschalen unsafeHTML-Lösung).
+ * - componentSite: `agree`/`ignore` wurden zwar mit Fallback `{}` lokal angelegt, im Template
+ *   aber trotzdem `data.agree.*`/`data.ignore.*` direkt verwendet -> Absturz, falls die Felder
+ *   fehlen. Jetzt konsequent über die lokalen `agree`/`ignore`-Variablen.
+ * - componentSite: `data._`/`data._.access` werden jetzt garantiert initialisiert (auf dem
+ *   echten `data`-Objekt, nicht auf einer Kopie), damit `alterRights()` seine Änderungen
+ *   tatsächlich persistiert, wenn später `instance.updateData(data)` aufgerufen wird.
+ * - Tote Funktion `renderIgnoreConfig` entfernt (war nirgends aufgerufen und hatte denselben
+ *   String-statt-html-Bug).
+ * - Positions-Index-Bug behoben: `instance.myFunction(index, comp)` nutzte den Index im
+ *   angezeigten (ggf. gefilterten/sortierten) Array statt den echten Index in
+ *   `instance.datasets`. Neue Hilfsfunktion `resolveDatasetIndex()` sucht stattdessen über
+ *   den App-Key - robust auch bei gefilterten/sortierten Listen.
+ * - frontpage(): Die Such-/Filterleiste hat bisher nichts getan (nur console.log). Jetzt
+ *   filtert und sortiert sie tatsächlich; das Ergebnis-Grid wurde in eine eigene Funktion
+ *   componentGrid() ausgelagert, damit bei Eingaben nur das Grid neu gerendert wird statt
+ *   der ganzen Seite (Fokus im Input bleibt erhalten).
+ * - Diverse console.log-Debug-Ausgaben entfernt.
+ * - Null-Checks bei DOM-Zugriffen (querySelector kann null liefern) ergänzt, u. a. in
+ *   renderConfig(), alterRights() und der Hover-Preview in commentTile().
+ */
 
-
+/**
+ * Ermittelt anhand des App-Keys den tatsächlichen Index in instance.datasets.
+ * Robuster als sich auf die Position im angezeigten (ggf. gefilterten/sortierten)
+ * Array zu verlassen.
+ */
+function resolveDatasetIndex(comp, instance) {
+    const appKey = comp?.Config?.app;
+    if (appKey === undefined || !Array.isArray(instance?.datasets)) return -1;
+    return instance.datasets.findIndex(d => d.app === appKey);
+}
 
 export function detail(app) {
-        return html`
-            <div>
-                <h2>${app.title}</h2>
-                <p>${app.description || ""}</p>
+    return html`
+        <div>
+            <h2>${app.title}</h2>
+            <p>${app.description || ""}</p>
 
-                <button onclick="location.reload()">
-                    zurück
-                </button>
-            </div>
-        `}
+            <button @click=${() => location.reload()}>
+                zurück
+            </button>
+        </div>
+    `;
+}
+
 export function mainLogin() {
     return html`
     <div class="d-flex justify-content-end p-3">
@@ -31,35 +78,26 @@ export function mainLogin() {
   `;
 }
 
-
 export function componentSite(data, comp, instance) {
 
     // State merken ob die Config geladen wurde
     let configLoaded = false;
 
     data = data || {};
-    console.log("comp");
-    console.log(comp);
-    const agree = data.agree || {};
-    const ignore = data.ignore || {};
-    const meta = data._ || {};
+
+    // Auf dem ECHTEN data-Objekt initialisieren (nicht auf einer Kopie), damit Änderungen
+    // über alterRights() später via instance.updateData(data) tatsächlich gespeichert werden.
+    data._ = data._ || {};
+    data._.access = data._.access || {};
+    data.agree = data.agree || {};
+    data.ignore = data.ignore || {};
+
+    const agree = data.agree;
+    const ignore = data.ignore;
+    const meta = data._;
     const key = Array.isArray(data.key) ? data.key.join(' / ') : (data.key || '–');
-    console.log(data)
 
-
-
-    const renderIgnoreConfig = (config) => {
-        if (!Array.isArray(config) || config.length === 0) {
-            return `<div class="empty_value">–</div>`;
-        }
-        return html `
-      <ul class="sublist">
-        ${config.map(item => `<li>${typeof item === 'object' ? JSON.stringify(item) : item}</li>`).join('')}
-      </ul>
-    `;
-    };
-
-    //rekursive Funktion um Arrays und Obejkte die in der JSON der Komponente liegen iterativ auszugeben und auf den Bildschirm zu Projezieren
+    //rekursive Funktion um Arrays und Objekte die in der JSON der Komponente liegen iterativ auszugeben und auf den Bildschirm zu projizieren
     const checkArray = (item) => {
         //wenn das item ein Object ist wird jedes Schlüssel/Wert Paar iterativ ausgegeben und jeder Wert wird darauf geprüft ob es ein Array ist
         if (typeof item === 'object' && !Array.isArray(item) && item !== null) {
@@ -73,7 +111,7 @@ export function componentSite(data, comp, instance) {
         `;
         }
 
-        //Wenn das Item ein Array ist wird jedes Item aus dem Array zurückgegeben nachdem es darauf rekursiv geprüft wurde ob es selber wieder ein Array ist
+        //Wenn das Item ein Array ist wird jedes Item aus dem Array zurückgegeben, nachdem es selbst rekursiv geprüft wurde
         if (Array.isArray(item)) {
             return html`
             <ul>
@@ -89,45 +127,47 @@ export function componentSite(data, comp, instance) {
 
     //Dropdown Menü um die Nutzerrechte get set del zu ändern
     const dropdownMenu = (type) => {
-        return html `
+        return html`
             <div class="dropdown_container">
                 <button @click=${() => alterRights(type, "creator")}> creator </button> <br>
                 <button @click=${() => alterRights(type, "all")}> all </button> <br>
-               
             </div>
-            
-        `
-    }
+        `;
+    };
 
     const alterRights = (type, right) => {
-        data._.access[type] = right; // das richtige Schlüssel wert paar erneuern
-        instance.element.querySelector(`#${type}`).innerHTML = right;
-    }
+        data._.access[type] = right; // das richtige Schlüssel-Wert-Paar erneuern (persistiert über data._)
+        const target = instance.element?.querySelector(`#${type}`);
+        if (target) {
+            target.innerHTML = right;
+        } else {
+            console.warn(`[componentSite] alterRights: Element #${type} nicht gefunden.`);
+        }
+    };
 
-    const renderConfig = () => { // Lädt die Config seite  indem sie Sichtbar gemacht wird
-        const comment = instance.element.querySelector(".comment_site_container");
-        const component = instance.element.querySelector(".component_site_container");
-        const configButton = instance.element.querySelector("#load_config_button")
+    const renderConfig = () => { // Lädt die Config-Seite, indem sie sichtbar gemacht wird
+        const comment = instance.element?.querySelector(".comment_site_container");
+        const component = instance.element?.querySelector(".component_site_container");
+        const configButton = instance.element?.querySelector("#load_config_button");
+
+        if (!comment || !component || !configButton) {
+            console.warn("[componentSite] renderConfig: benötigte Elemente nicht gefunden.");
+            return;
+        }
+
         if (!configLoaded) {
-
-
             comment.style.display = "grid";
             component.style.gridColumn = "1/2";
-            configButton.replaceChildren("Config verbegen")
+            configButton.replaceChildren("Config verbergen");
             configLoaded = true;
         } else {
             comment.style.display = "none";
             component.style.gridColumn = "1/3";
-            configButton.replaceChildren("Komplette Config anzeigen")
+            configButton.replaceChildren("Komplette Config anzeigen");
             configLoaded = false;
         }
+    };
 
-
-
-
-
-
-    }
     return html`
         <div class="component_site_container_container">
 
@@ -174,14 +214,14 @@ export function componentSite(data, comp, instance) {
           </tr>
           <tr>
             <td class="label">Gelöscht</td>
-            <td>${data.deleted }</td>
+            <td>${data.deleted}</td>
           </tr>
           <tr>
             <td class="label">Tags</td>
             <td>
               ${Array.isArray(data.tags) && data.tags.length > 0
-        ? data.tags.map(t => `<span class="tag_chip">${t}</span>`).join(' ')
-        : '<span class="empty_value">keine</span>'}
+        ? data.tags.map(t => html`<span class="tag_chip">${t}</span>`)
+        : html`<span class="empty_value">keine</span>`}
             </td>
           </tr>
         </table>
@@ -189,7 +229,7 @@ export function componentSite(data, comp, instance) {
 
       <div class="site_section">
         <h3 class="section_title">Beschreibung</h3>
-        <div class="description_box">${data.description || '<span class="empty_value">keine Beschreibung</span>'}</div>
+        <div class="description_box">${data.description || html`<span class="empty_value">keine Beschreibung</span>`}</div>
       </div>
 
       <div class="site_section">
@@ -197,15 +237,15 @@ export function componentSite(data, comp, instance) {
         <table class="info_table">
           <tr>
             <td class="label">Content</td>
-            <td>${data.agree.content }</td>
+            <td>${agree.content}</td>
           </tr>
           <tr>
             <td class="label">Software</td>
-            <td>${data.agree.software }</td>
+            <td>${agree.software}</td>
           </tr>
           <tr>
             <td class="label">Copyright</td>
-            <td>${data.agree.copyright}</td>
+            <td>${agree.copyright}</td>
           </tr>
         </table>
       </div>
@@ -215,13 +255,9 @@ export function componentSite(data, comp, instance) {
         <table class="info_table">
           <tr>
             <td class="label">Config</td>
-            <td>${data.ignore.config.map((item) => {
-                
-                return checkArray(item);
-               
-    })}
-                <button id="load_config_button" @click = ${renderConfig} >
-                    "Komplette Config Anzeigen"
+            <td>${(ignore.config || []).map((item) => checkArray(item))}
+                <button id="load_config_button" @click=${renderConfig}>
+                    Komplette Config anzeigen
                 </button>    
             </td>
           </tr>
@@ -256,7 +292,7 @@ export function componentSite(data, comp, instance) {
                 <label class="access_toggle">
                     <input type="checkbox" class="set_button">
                         <span class="fake_button" id="set">
-                            ${(meta.access && meta.access.set) || '–'} 
+                            ${meta.access?.set || '–'} 
                         </span>
                     
                     ${dropdownMenu("set")} 
@@ -268,14 +304,14 @@ export function componentSite(data, comp, instance) {
             <td>
                 <label class="access_toggle">
                 <input type="checkbox" class="del_button">
-                    <span class="fake_button" id="del"> ${(meta.access && meta.access.del) || '–'}   </span>
+                    <span class="fake_button" id="del"> ${meta.access?.del || '–'}   </span>
                     ${dropdownMenu("del")}
                 </label>
             </td>
           </tr>
             <tr>
-                <td> <button @click = ${() => instance.deleteComponent(data)}> delete</button></td>
-                <td> <button @click = ${() => instance.updateData(data)}> update </button> </td>
+                <td> <button @click=${() => instance.deleteComponent(data)}> delete</button></td>
+                <td> <button @click=${() => instance.updateData(data)}> update </button> </td>
             </tr>
         </table>
       </div>
@@ -287,35 +323,102 @@ export function componentSite(data, comp, instance) {
     </style>
   `;
 }
-export function frontpage(componentArray, instance){
 
-    /* Wähle alle eingaben, gebe jeder eingabe einen Eventlistener dass bei Input die suchbarfunktion aufgerufen wird mit der ID als topic*/
-    const filter = (topic, input) => {
-        console.log(topic, input);
-        let tempData = [];
-        componentArray.forEach((item)=>{
-            console.log(item)
-        })
+/** Rendert nur das Grid der App-Kacheln - ausgelagert, damit Filter/Sortierung nur diesen
+ *  Teil neu rendern müssen, statt die komplette Frontpage (Fokus im Input bleibt erhalten). */
+function componentGrid(componentArray, instance) {
+    if (!componentArray || componentArray.length === 0) {
+        return html`<div class="empty_value">Keine Apps gefunden.</div>`;
+    }
+
+    return html`
+        ${componentArray.map((comp) => html`
+            <div class="component" @click=${() => {
+        const idx = resolveDatasetIndex(comp, instance);
+        if (idx === -1) {
+            console.warn("[frontpage] Konnte App nicht in datasets finden:", comp?.Titel);
+            return;
+        }
+        instance.myFunction(idx, comp);
+    }}>
+                <div class="component_top">
+                    <img src=${comp.Icon} class="component_icon">
+                    <h5 class="component_name">
+                        ${comp.Titel}
+                    </h5>
+                    <div class="tags">
+                        <p class="component_app">App</p>
+                        <p class="component_komponente"> ${comp.Komponente} </p>
+                    </div>
+                </div>
+
+                <div class="component_beschreibung">
+                    <p> ${comp.Beschreibung}</p>
+                </div>
+                <div class="component_bottom"></div>
+            </div>
+        `)}
+    `;
+}
+
+export function frontpage(componentArray, instance) {
+
+    // Filter-/Sortier-Zustand für die Suchleiste
+    const state = { titel: "", werkzeug: "", author: "", kategorie: "", sort: "" };
+
+    const applyFilters = (list) => list.filter(comp => {
+        const titelOk = !state.titel || (comp.Titel || "").toLowerCase().includes(state.titel.toLowerCase());
+        const werkzeugOk = !state.werkzeug || (comp.Komponente || "").toLowerCase().includes(state.werkzeug.toLowerCase());
+        // "Ersteller" steht im aktuellen Datenmodell nicht garantiert auf jedem Eintrag - Fallback auf Config.creator.
+        const authorSource = comp.Ersteller || comp.Config?.creator || comp.Config?._?.creator || "";
+        const authorOk = !state.author || authorSource.toLowerCase().includes(state.author.toLowerCase());
+        // "Kategorie" ist aktuell kein Feld im dataArray-Modell - Filter greift nur, falls vorhanden.
+        const kategorieOk = !state.kategorie || (comp.Kategorie || "").toLowerCase().includes(state.kategorie.toLowerCase());
+        return titelOk && werkzeugOk && authorOk && kategorieOk;
+    });
+
+    const applySort = (list) => {
+        const sorted = [...list];
+        if (state.sort === "alphabetisch") {
+            sorted.sort((a, b) => (a.Titel || "").localeCompare(b.Titel || ""));
+        } else if (state.sort === "neuste") {
+            // created_at ist aktuell nicht Teil des dataArray-Modells - fehlt es, bleibt die
+            // Reihenfolge unverändert (kein Crash, nur kein sichtbarer Effekt).
+            sorted.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+        }
+        return sorted;
+    };
+
+    const rerenderGrid = () => {
+        const gridContainer = instance.element?.querySelector(".datacockpit_component_container");
+        if (!gridContainer) return;
+        render(componentGrid(applySort(applyFilters(componentArray)), instance), gridContainer);
     };
 
     const handleInput = (e) => {
-        filter(e.target.id, e.target.value);
+        state[e.target.id] = e.target.value;
+        rerenderGrid();
     };
+
+    const handleSort = (e) => {
+        state.sort = e.target.value;
+        rerenderGrid();
+    };
+
     return html`
         <div class="datacockpit_frontpage_container">
             <div class="datacockpit_headline_container">
                 <div class="datacockpit_frontpage_headline">
                     <h2 class="datacockpit_landingpage_head">Data-Cockpit</h2>
                     <p class="datacockpit_landingpage_description">Verwende von anderen erstellte Apps als Vorlage für eigene Apps und passe sie dann an deine eigenen individuellen Bedürfnisse an.</p>
-                    <div class ="datacockpit_frontpage_ladeandere" >
-                        Auf der Suche nach Daten, die nicht zu deinen Apps gehören (Zum Beispiel Likes die vergeben wurden)? Klicke den Button!
-                        <button @click=${instance.renderRestSite}}> Klick</button>
+                    <div class="datacockpit_frontpage_ladeandere">
+                        <button @click=${instance.renderAppLikesSite}> Likes auf App</button>
+                        <button @click=${instance.renderCommentRatingsSite}> Likes auf Kommentare</button>
+                        <button @click=${instance.renderComments}> Kommentare die du verfasst hast</button>
+                        <button @click=${instance.renderCommentComponentCommentRatingsSite}> Likes auf Kommentare von Kommentarkomponenten</button>
+                        Auf der Suche nach Daten, die nicht zu deinen Apps gehören (Zum Beispiel Likes die vergeben wurden)? Klicke einfach den Button zu den Daten die du Suchst!
                     </div>
                 </div>
-                
-
-                </img>
-                
             </div>
             <div class="filter-bar">
                 <div class="filter-group">
@@ -325,24 +428,22 @@ export function frontpage(componentArray, instance){
 
                 <div class="filter-group">
                     <label for="werkzeug">Werkzeug</label>
-                    <input type="text" id="werkzeug" class="eingabe" @input=${handleInput}}/>
+                    <input type="text" id="werkzeug" class="eingabe" @input=${handleInput} />
                 </div>
 
                 <div class="filter-group">
                     <label for="author">Author</label>
-                    <input type="text" id="author" class="eingabe" @input=${handleInput}}/>
+                    <input type="text" id="author" class="eingabe" @input=${handleInput} />
                 </div>
 
                 <div class="filter-group">
                     <label for="kategorie">Kategorie</label>
-                    <input type="text" id="kategorie" class="eingabe" @input=${handleInput}}/>
+                    <input type="text" id="kategorie" class="eingabe" @input=${handleInput} />
                 </div>
-                    
-                       
-                    
+
                 <div class="filter-group">
                     <label for="sortieren">Sortieren nach</label>
-                    <select id="sortieren">
+                    <select id="sortieren" @change=${handleSort}>
                         <option value="" disabled selected hidden></option>
                         <option value="alphabetisch">Alphabetisch</option>
                         <option value="neuste">neuste zuerst</option>
@@ -350,43 +451,13 @@ export function frontpage(componentArray, instance){
                 </div>
             </div>
             <div class="datacockpit_component_container">
-                
-                ${componentArray.map((comp, index) => 
-                    html`
-                        <div class="component" @click=${() => instance.myFunction(index, comp)}>
-                            <div class="component_top">
-                                <img src=${comp.Icon} class="component_icon">
-                                <h5 class="component_name">
-                                    ${comp.Titel}
-                                </h5>
-                                <div class="tags" >
-                                    <p class ="component_app">App</p>
-                                    <p class="component_komponente"> ${comp.Komponente} </p>
-                                    
-                                    
-                                </div>
-                            </div>
-                            
-                            <div class="component_beschreibung">
-                                <p> ${comp.Beschreibung}</p>
-                            </div>
-                            <div class="component_bottom">
-                                
-                                
-                            </div>`
-                    
-                )}
-                
+                ${componentGrid(componentArray, instance)}
             </div>
-            
         </div>
-    `
-
-    //Funktion um die Suchleiste zu benutzen. Topic beschreibt hier was gesucht wird (Titel Werkzeug etc)
-
+    `;
 }
-export function commentSite(data, instance) {
 
+export function commentSite(data, instance) {
 
     const config = data.Config || {};
     const meta = config._ || {};
@@ -394,10 +465,8 @@ export function commentSite(data, instance) {
     const commentEntries = Array.isArray(data.data) ? data.data : [];
     const kommentareStatus = data.Kommentare;
     const configKey = Array.isArray(config.key) ? config.key.join(' / ') : (config.key || '–');
-    console.log("CommmentSite")
-    console.log(data)
 
-    const boolBadge = (val) => html `
+    const boolBadge = (val) => html`
         <span class="badge ${val ? 'badge_true' : 'badge_false'}">
       ${val ? '✓ ja' : '✗ nein'}
     </span>
@@ -414,10 +483,10 @@ export function commentSite(data, instance) {
     const renderControls = () => {
         const keys = Object.keys(controls);
 
-        if (keys.length === 0) return html `<div class="empty_value">keine</div>`;
-        return html `
+        if (keys.length === 0) return html`<div class="empty_value">keine</div>`;
+        return html`
             <div class="badge_group">
-                ${keys.map(k => html `
+                ${keys.map(k => html`
                     <span class="control_badge ${controls[k] ? 'control_on' : 'control_off'}">
             ${controlLabels[k] || k}: ${controls[k] ? '✓' : '✗'}
           </span>
@@ -428,14 +497,14 @@ export function commentSite(data, instance) {
 
     const renderResourceBlock = (label, value) => {
         if (value === undefined || value === null) {
-            return html `
+            return html`
                 <div class="resource_block">
                     <div class="resource_label">${label}</div>
                     <div class="empty_value">–</div>
                 </div>
             `;
         }
-        return html `
+        return html`
             <div class="resource_block">
                 <div class="resource_label">${label}</div>
                 <pre class="json_block">${JSON.stringify(value, null, 2)}</pre>
@@ -443,13 +512,13 @@ export function commentSite(data, instance) {
         `;
     };
 
-    const renderCommentEntries = (instance) => {
+    const renderCommentEntries = () => {
         if (commentEntries.length === 0) {
-            return html `<div class="empty_value">Noch keine Kommentar-Einträge vorhanden</div>`;
+            return html`<div class="empty_value">Noch keine Kommentar-Einträge vorhanden</div>`;
         }
-        return html `
+        return html`
             <div class="comment_grid">
-                ${commentEntries.map((c,index) => html`
+                ${commentEntries.map((c, index) => html`
                     <div class="comment_card" id="comment-${index}">
                         <div class="comment_card_header">
                             <img class="comment_avatar" src="${c.picture || ''}" alt="avatar" />
@@ -457,13 +526,11 @@ export function commentSite(data, instance) {
                                 <div class="comment_user">${c.user || 'Unbekannt'}</div>
                                 <div class="comment_date">${c.created_at || ''}</div>
                             </div>
-                            <button class="delete_btn" @click=${() =>{  //Kommentar Löschen und in ohne ein render Update erstmal verschwinden lassen
-                                instance.deleteComment("dms2-comment-data", c.key);
-                                let card = instance.element.querySelector(`#comment-${index}`);
-                                card.style.display = "none";
-                            }
-                
-                            }>
+                            <button class="delete_btn" @click=${() => { //Kommentar löschen und ohne render-Update erstmal verschwinden lassen
+            instance.deleteComment("dms2-comment-data", c.key);
+            const card = instance.element?.querySelector(`#comment-${index}`);
+            if (card) card.style.display = "none";
+        }}>
                                 🗑
                             </button>
                         </div>
@@ -480,11 +547,11 @@ export function commentSite(data, instance) {
     const renderKommentareStatus = () => {
         const kommentareList = Array.isArray(kommentareStatus) ? kommentareStatus : [];
         if (kommentareList.length === 0) {
-            return html `<div class="empty_value">Noch keine Kommentare vorhanden</div>`;
+            return html`<div class="empty_value">Noch keine Kommentare vorhanden</div>`;
         }
-        return html `
+        return html`
             <div class="comment_grid">
-                ${kommentareList.map((c,index) => html`
+                ${kommentareList.map((c, index) => html`
                     <div class="comment_card" id="realcomment-${index}">
                         <div class="comment_card_header">
                             <img class="comment_avatar" src="${c.picture || ''}" alt="avatar" />
@@ -493,10 +560,10 @@ export function commentSite(data, instance) {
                                 <div class="comment_date">${c.created_at || ''}</div>
                             </div>
                             <button class="delete_btn" @click=${() => {
-                                instance.deleteComment("dms2-comments", c.key);
-                                let card = instance.element.querySelector(`#realcomment-${index}`);
-                                card.style.display = "none";
-                            }}>
+            instance.deleteComment("dms2-comments", c.key);
+            const card = instance.element?.querySelector(`#realcomment-${index}`);
+            if (card) card.style.display = "none";
+        }}>
                                 🗑
                             </button>
                         </div>
@@ -548,13 +615,12 @@ export function commentSite(data, instance) {
         `;
     };
 
-    const renderComments = ()  => {
-        return html`
-            <div class="site_section">
+    const renderComments = () => html`
+        <div class="site_section">
             <h3 class="section_title">Kommentar-Einträge (data)</h3>
-            ${renderCommentEntries(instance)}
-        </div>`
-    }
+            ${renderCommentEntries()}
+        </div>
+    `;
 
     return html`
         <div class="comment_site_container">
@@ -572,7 +638,7 @@ export function commentSite(data, instance) {
 
             <div class="site_section">
                 <h3 class="section_title">Beschreibung</h3>
-                <div class="description_box">${data.Beschreibung || '<span class="empty_value">keine Beschreibung</span>'}</div>
+                <div class="description_box">${data.Beschreibung || html`<span class="empty_value">keine Beschreibung</span>`}</div>
             </div>
 
             <div class="site_section">
@@ -609,8 +675,8 @@ export function commentSite(data, instance) {
                     <tr>
                         <td class="label">Picture</td>
                         <td>${config.picture
-                                ? `<a href="${config.picture}" target="_blank" rel="noopener">${config.picture}</a>`
-                                : '<span class="empty_value">–</span>'}</td>
+        ? html`<a href="${config.picture}" target="_blank" rel="noopener">${config.picture}</a>`
+        : html`<span class="empty_value">–</span>`}</td>
                     </tr>
                 </table>
             </div>
@@ -640,8 +706,8 @@ export function commentSite(data, instance) {
                     <tr>
                         <td class="label">Meta</td>
                         <td>${config.ignore && Array.isArray(config.ignore.meta)
-                                ? `<pre class="json_block">${JSON.stringify(config.ignore.meta, null, 2)}</pre>`
-                                : '<span class="empty_value">–</span>'}</td>
+        ? html`<pre class="json_block">${JSON.stringify(config.ignore.meta, null, 2)}</pre>`
+        : html`<span class="empty_value">–</span>`}</td>
                     </tr>
                 </table>
             </div>
@@ -684,8 +750,7 @@ export function commentSite(data, instance) {
                     </tr>
                 </table>
             </div>
-            ${data.Komponente == "comment" ? renderComments(instance) : renderJSON(data.data)}
-            
+            ${data.Komponente === "comment" ? renderComments() : renderJSON(data.data)}
 
             <div class="site_section">
                 <h3 class="section_title">Kommentare</h3>
@@ -695,348 +760,167 @@ export function commentSite(data, instance) {
         </div>
 
         <style>
-            .comment_site_container {
-                font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-                display: none;
-                max-width: 720px;
-                margin: 0 auto;
-                padding: 16px;
-                color: #1f2933;
-                background: #ffffff;
-                border: 1px solid #e2e8f0;
-                border-radius: 12px;
-                box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-                grid-column: 2/3;
-                grid-row: 2/3;
-            }
-
-            .site_header {
-                display: flex;
-                align-items: center;
-                gap: 12px;
-                padding-bottom: 14px;
-                margin-bottom: 14px;
-                border-bottom: 1px solid #e2e8f0;
-            }
-
-            .site_icon {
-                width: 40px;
-                height: 40px;
-                flex-shrink: 0;
-                border-radius: 8px;
-                background: #f1f5f9;
-                object-fit: contain;
-                padding: 4px;
-            }
-
-            .site_header_text {
-                flex: 1;
-                min-width: 0;
-            }
-
-            .site_title {
-                margin: 0;
-                font-size: 18px;
-                font-weight: 600;
-                line-height: 1.3;
-                word-break: break-word;
-            }
-
-            .site_subject {
-                margin-top: 2px;
-                font-size: 13px;
-                color: #64748b;
-            }
-
-            .site_status {
-                flex-shrink: 0;
-                font-size: 12px;
-                font-weight: 600;
-                padding: 4px 10px;
-                border-radius: 999px;
-                white-space: nowrap;
-            }
-
-            .status_neutral {
-                background: #e0e7ff;
-                color: #3730a3;
-            }
-
-            .site_section {
-                margin-bottom: 18px;
-            }
-
-            .site_section:last-child {
-                margin-bottom: 0;
-            }
-
-            .section_title {
-                font-size: 13px;
-                font-weight: 700;
-                text-transform: uppercase;
-                letter-spacing: 0.04em;
-                color: #475569;
-                margin: 0 0 8px 0;
-            }
-
-            .info_table {
-                width: 100%;
-                border-collapse: collapse;
-                font-size: 14px;
-            }
-
-            .info_table tr:not(:last-child) td {
-                border-bottom: 1px solid #f1f5f9;
-            }
-
-            .info_table td {
-                padding: 6px 4px;
-                vertical-align: top;
-            }
-
-            .info_table td.label {
-                width: 32%;
-                color: #64748b;
-                font-weight: 500;
-                white-space: nowrap;
-            }
-
-            .description_box {
-                font-size: 14px;
-                background: #f8fafc;
-                border: 1px solid #e2e8f0;
-                border-radius: 8px;
-                padding: 10px 12px;
-                line-height: 1.5;
-            }
-
-            .empty_value {
-                color: #94a3b8;
-                font-style: italic;
-            }
-
-            .badge {
-                display: inline-block;
-                font-size: 12px;
-                font-weight: 600;
-                padding: 2px 8px;
-                border-radius: 999px;
-            }
-
-            .badge_true {
-                background: #dcfce7;
-                color: #166534;
-            }
-
-            .badge_false {
-                background: #fee2e2;
-                color: #991b1b;
-            }
-
-            .badge_group {
-                display: flex;
-                flex-wrap: wrap;
-                gap: 6px;
-            }
-
-            .control_badge {
-                font-size: 12px;
-                font-weight: 600;
-                padding: 3px 10px;
-                border-radius: 999px;
-            }
-
-            .control_on {
-                background: #dcfce7;
-                color: #166534;
-            }
-
-            .control_off {
-                background: #f1f5f9;
-                color: #94a3b8;
-            }
-
-            .resource_grid {
-                display: grid;
-                grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-                gap: 10px;
-            }
-
-            .resource_block {
-                background: #0f172a;
-                border-radius: 8px;
-                padding: 8px 10px;
-                overflow: hidden;
-            }
-
-            .resource_label {
-                font-size: 11px;
-                font-weight: 700;
-                text-transform: uppercase;
-                letter-spacing: 0.04em;
-                color: #93c5fd;
-                margin-bottom: 4px;
-            }
-
-            .json_block {
-                margin: 0;
-                font-family: "SF Mono", "Fira Code", Consolas, monospace;
-                font-size: 11.5px;
-                line-height: 1.45;
-                color: #e2e8f0;
-                white-space: pre-wrap;
-                word-break: break-word;
-                max-height: 180px;
-                overflow-y: auto;
-            }
-
-            .json_block_light {
-                background: #f8fafc;
-                border: 1px solid #e2e8f0;
-                border-radius: 8px;
-                padding: 8px 10px;
-                color: #1f2933;
-            }
-
-            .comment_grid {
-                display: grid;
-                grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-                gap: 12px;
-            }
-
-            .comment_card {
-                border: 1px solid #e2e8f0;
-                border-radius: 10px;
-                padding: 12px;
-                background: #f8fafc;
-            }
-
-            .comment_card_header {
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                margin-bottom: 8px;
-            }
-
-            .comment_avatar {
-                width: 28px;
-                height: 28px;
-                border-radius: 50%;
-                object-fit: cover;
-                background: #e2e8f0;
-            }
-
-            .comment_meta {
-                min-width: 0;
-            }
-
-            .comment_user {
-                font-size: 13px;
-                font-weight: 600;
-                line-height: 1.2;
-            }
-
-            .comment_date {
-                font-size: 11px;
-                color: #94a3b8;
-            }
-
-            .comment_text {
-                font-size: 13.5px;
-                line-height: 1.4;
-                margin-bottom: 8px;
-                word-break: break-word;
-            }
-
-            .comment_footer {
-                padding-top: 6px;
-                border-top: 1px solid #e2e8f0;
-            }
-
-            .comment_key {
-                font-size: 10.5px;
-                color: #94a3b8;
-                background: none;
-                padding: 0;
-                word-break: break-all;
-            }
-
-            code {
-                font-size: 13px;
-                background: #f1f5f9;
-                padding: 1px 6px;
-                border-radius: 4px;
-                word-break: break-all;
-            }
-            .comment_card_header {
-                position: relative;
-            }
-
-            .delete_btn {
-                margin-left: auto;
-                flex-shrink: 0;
-                background: none;
-                border: none;
-                cursor: pointer;
-                font-size: 25px;
-                padding: 4px 6px;
-                border-radius: 6px;
-                color: #94a3b8;
-                line-height: 1;
-                transition: background 0.15s, color 0.15s;
-            }
-
-            .delete_btn:hover {
-                background: #fee2e2;
-                color: #dc2626;
-            }
+            
         </style>
     `;
 }
 
-export function restSite(rest, instance){
-    console.log("rest")
-    console.log(rest)
-    const renderJSON = (value, depth = 0) => {
+export function appTile(componentArray, instance, like = false) {
 
-        if (value === null || value === undefined) {
-            return html`<span class="empty_value">–</span>`;
-        }
-        if (typeof value === 'boolean') {
-            return boolBadge(value);
-        }
-        if (typeof value !== 'object') {
-            return html`<span>${value}</span>`;
-        }
-        if (Array.isArray(value)) {
-            if (value.length === 0) return html`<span class="empty_value">[ ]</span>`;
-            return html`
-            <div class="rj_array">
-                ${value.map((item, i) => html`
-                    <div class="rj_array_item">
-                        <span class="rj_index">[${i}]</span>
-                        <div class="rj_array_value">${renderJSON(item, depth + 1)}</div>
+    const uniqueComponents = componentArray.filter((comp, index, arr) => //filtern, dass jede App nur einmal geladen wird
+        arr.findIndex(c => c.Titel === comp.Titel) === index //erster Index mit passendem Titel = erstes Vorkommen
+    );
+
+    return html`
+        ${uniqueComponents.map((comp) => html`
+            <div class="component" @click=${() => {
+            const idx = resolveDatasetIndex(comp, instance);
+            if (idx === -1) {
+                console.warn("[appTile] Konnte App nicht in datasets finden:", comp?.Titel);
+                return;
+            }
+            instance.myFunction(idx, comp);
+        }}>
+                <div class="component_top">
+                    <img src=${comp.Icon} class="component_icon">
+                    <h5 class="component_name">
+                        ${comp.Titel}
+                    </h5>
+                    <div class="tags">
+                        <p class="component_app">App</p>
+                        <p class="component_komponente"> ${comp.Komponente} </p>
                     </div>
-                `)}
+                </div>
+
+                <div class="component_beschreibung">
+                    <p> ${comp.Beschreibung}</p>
+                </div>
+                <div class="component_bottom">
+                    <div class="component_creator">
+                        <span class="creator_icon">👤</span>
+                        <span class="creator_name">${comp.Ersteller}</span>
+                    </div>
+                    <div class="app_rating">
+                        ${like ? html`deine Bewertung: ${comp.rating} Sterne` : ""}
+                    </div>
+                </div>
+            </div>
+        `)}
+    `;
+}
+
+export function commentTile(commentEntries, instance) {
+
+    // Alle Kommentare aus allen Komponenten holen
+    const comments = commentEntries.flatMap(comp =>
+        (comp.Kommentar || []).map(comment => ({
+            ...comment,
+            rating: comp.rating,
+            Titel: comp.Titel,
+            Icon: comp.Icon,
+            Komponente: comp.Komponente,
+            Ersteller: comp.Ersteller,
+            Beschreibung: comp.Beschreibung
+        }))
+    );
+
+    if (comments.length === 0) {
+        return html`
+            <div class="empty_value">
+                Noch keine Kommentar-Einträge vorhanden
             </div>
         `;
+    }
+
+    const getPreview = () => instance.element?.querySelector(".app_preview");
+
+    const renderApp = (comp, event) => {
+        let preview = getPreview();
+
+        if (!preview) {
+            preview = document.createElement("div");
+            preview.className = "app_preview";
+            instance.element?.appendChild(preview);
         }
-        const keys = Object.keys(value);
-        if (keys.length === 0) return html`<span class="empty_value">{ }</span>`;
-        return html`
-            <table class="info_table ${depth > 0 ? 'rj_nested' : ''}">
-                ${keys.map(k => html`
-                <tr>
-                    <td class="label">${k}</td>
-                    <td>${renderJSON(value[k], depth + 1)}</td>
-                </tr>
-            `)}
-            </table>
-        `;
+
+        render(appTile([comp], instance), preview);
+
+        preview.style.left = `${event.clientX + 15}px`;
+        preview.style.top = `${event.clientY + 15}px`;
     };
-    return html `
-        <div class="rest_container">
-            ${renderJSON(rest)}
+
+    const updateAppPosition = (event) => {
+        const preview = getPreview();
+        if (!preview) return;
+        preview.style.left = `${event.clientX + 15}px`;
+        preview.style.top = `${event.clientY + 15}px`;
+    };
+
+    const removeAppPreview = () => {
+        const preview = getPreview();
+        if (preview) preview.remove();
+    };
+
+    return html`
+        ${comments.map((c, index) => html`
+            <div class="comment_card" id="comment-${index}"
+                 @mouseenter=${(e) => renderApp(c, e)}
+                 @mousemove=${(e) => updateAppPosition(e)}
+                 @mouseleave=${() => removeAppPreview()}
+            >
+                <div class="comment_card_header">
+                    <img class="comment_avatar" src="${c.picture || ''}" alt="avatar" />
+
+                    <div class="comment_meta">
+                        <div class="comment_user">${c.user || 'Unbekannt'}</div>
+                        <div class="comment_date">${c.created_at || ''}</div>
+                    </div>
+                </div>
+
+                <div class="comment_text">${c.text || ''}</div>
+                <div class="comment_rating">
+                    ${c.rating
+                ? Object.entries(c.rating).map(([key, value]) => html`
+                        <div class="rating_entry">
+                            <span class="rating_key">${key}</span>
+                            <span class="badge ${value ? 'badge_true' : 'badge_false'}">
+                                ${typeof value === 'boolean' ? (value ? '✓' : '✗') : value}
+                            </span>
+                        </div>
+                    `)
+                : html`<span>Keine Bewertung</span>`}
+                </div>
+            </div>
+        `)}
+    `;
+}
+
+export function appLikesSite(componentArray, instance) {
+    return html`
+        <div class="datacockpit_frontpage_container">
+
+            <h2 class="datacockpit_landingpage_head">Data-Cockpit</h2>
+            <p class="datacockpit_landingpage_description">Hier siehst du alle Apps die du geliked hast!</p>
+
+            <div class="datacockpit_component_container">
+                ${appTile(componentArray, instance, true)}
+            </div>
         </div>
-    `
+    `;
+}
+
+export function commentLikesSite(componentArray, instance, commentType) {
+    return html`
+        <div class="datacockpit_frontpage_container">
+
+            <h2 class="datacockpit_landingpage_head">Data-Cockpit</h2>
+            <p class="datacockpit_landingpage_description">${commentType ? "Hier siehst du alle Kommentare die du bewertet hast! Wenn du wissen willst, zu welcher App sie gehören, hover einfach über die Kachel." :
+        "Hier siehst du alle Kommentare, welche zu Kommentar-Apps gehören, die du geliked hast! Wenn du wissen willst, zu welcher Kommentar-App sie gehören, hover einfach über die Kachel."}
+            </p>
+
+            <div class="datacockpit_component_container">
+                ${commentTile(componentArray, instance)}
+            </div>
+       </div>
+   `;
 }
