@@ -5,7 +5,7 @@ html, body {
 
 }
 
- #element {
+#element {
     overflow: hidden;
     margin: 0;
     padding: 0;
@@ -25,11 +25,45 @@ button{
 }
 
 /* endregion */
+
+/* region Home-Button (auf jeder Seite oben links, rendert die Frontpage neu) */
+.home_button {
+    position: fixed;
+    top: 14px;
+    left: 14px;
+    z-index: 1000;
+
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+
+    padding: 8px 14px;
+    font-family: "Fira Code", "Consolas", monospace;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+
+    color: #e2e8f0;
+    background: #1f2933;
+    border: 1px solid #3730a3;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.25);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.home_button:hover {
+    background: #3730a3;
+    border-color: #4f46e5;
+    color: #ffffff;
+}
+/* endregion */
+
 .datacockpit_frontpage_container {
     display: grid;
     min-height: 100vh;
     width: 100vw;
-    grid-template-rows: 5% 25% 10% auto; /* auto statt 30% 40% */
+    grid-template-rows: 5% minmax(320px, 25%) 10% auto; /* minmax statt fester 25%, damit die Kopfzeile auf kleinen Bildschirmen nicht zu niedrig wird */
 }
 
 /* region Component Sytling*/
@@ -188,6 +222,13 @@ button{
 }
 .app_rating{
     justify-self: end;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.app_rating .delete_btn{
+    font-size: 16px;
+    padding: 2px 6px;
 }
 /*endregion*/
 .delete_data_button{
@@ -223,60 +264,67 @@ button{
 
 
 
+}.datacockpit_frontpage_ladeandere{
+     position: fixed;
+     top: 14px;
+     right: 14px;
+     z-index: 1000;
+
+     font-size: smaller;
+     width: 480px;
+     max-width: calc(100vw - 28px);
+     max-height: calc(100vh - 28px);
+     overflow-y: auto;
+
+     display: flex;
+     flex-direction: column;
+     gap: 10px;
+
+     background: #ffffff;
+     border: 1px solid #e2e8f0;
+     border-radius: 10px;
+     box-shadow: 0 4px 10px rgba(15, 23, 42, 0.12);
+     padding: 12px 14px;
+ }
+.ladeandere_hint {
+    font-size: 12px;
+    line-height: 1.5;
+    color: #64748b;
+    font-style: italic;
+    max-width: 46ch;
 }
-.datacockpit_frontpage_headline{
+.ladeandere_buttons {
     display: grid;
-    grid-template-columns: 50% 50%;
-    grid-template-rows: 30% auto;
-    font-size: x-large;
-    justify-self: center;
+    grid-template-columns: repeat(2, 1fr);
+    grid-auto-flow: row;
+    align-items: stretch;
+    gap: 8px;
+}.datacockpit_frontpage_ladeandere button {
+     display: flex;
+     align-items: center;
+     gap: 8px;
+     width: 100%;
+     height: 100%;
 
+     padding: 9px 12px;
+     font-size: 12.5px;
+     font-weight: 600;
+     font-family: inherit;
+     text-align: left;
+     line-height: 1.3;
 
-}
-.datacockpit_frontpage_ladeandere{
-    grid-column: 2/3 ;
-    font-size: smaller;
-    width: 50%;
-    margin-left: 2vw;
+     color: #1f2933;
+     background: #f8fafc;
 
-}
-.datacockpit_landingpage_description{
+     border: 1px solid #e2e8f0;
+     border-radius: 8px;
 
-    font-size: smaller;
-    grid-column: 1/2 ;
-    width: 50%;
-    justify-self: end;
-    margin-right: 2vw;
-}
-.datacockpit_landingpage_head{
-    color: red;
-    grid-column: 1/2 ;
-    justify-self: end;
-    width: 50%;
-    margin-right: 2vw;
+     cursor: pointer;
 
+     transition: all 0.15s ease-in-out;
 
-
-}
-.datacockpit_frontpage_ladeandere button {
-    margin-top: 10px;
-    padding: 8px 14px;
-    font-size: 13px;
-    font-weight: 600;
-    font-family: inherit;
-
-    color: #1f2933;
-    background: #f8fafc;
-
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-
-    cursor: pointer;
-
-    transition: all 0.15s ease-in-out;
-
-    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
-}
+     box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+ }
 
 .datacockpit_frontpage_ladeandere button:hover {
     background: #eef2f7;
@@ -953,5 +1001,167 @@ code {
     z-index: 9999;
     left: 0;
     top: 0;
+}
+/*endregion*/
+/*region Papierkorb*/
+.papierkorb_header {
+    grid-row: 2/3;
+    grid-column: 1/3;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 16px;
+    text-align: center;
+    max-width: 640px;
+    margin: 0 auto;
+}
+
+.trash_empty_button {
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #ffffff;
+    background: #b91c1c;
+    border: 1px solid #991b1b;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.trash_empty_button:hover:not(:disabled) {
+    background: #991b1b;
+}
+
+.trash_empty_button:disabled {
+    background: #e2e8f0;
+    color: #94a3b8;
+    border-color: #e2e8f0;
+    cursor: not-allowed;
+}
+
+.trash_content {
+    grid-row: 3/4;
+}
+
+.trash_count {
+    display: inline-block;
+    background: #f1f5f9;
+    color: #475569;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 999px;
+    margin-left: 6px;
+}
+
+.trash_grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 12px;
+}
+
+.trash_card {
+    border: 1px solid #fee2e2;
+    border-radius: 10px;
+    padding: 12px;
+    background: #fef2f2;
+}
+
+.trash_reason {
+    font-size: 13px;
+    font-weight: 600;
+    color: #991b1b;
+    margin-bottom: 8px;
+}
+
+.trash_card_header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.trash_card_header .trash_reason {
+    margin-bottom: 0;
+}
+
+.trash_card_header .delete_btn {
+    font-size: 16px;
+    padding: 2px 6px;
+    flex-shrink: 0;
+}
+/*endregion*/
+
+/*region Empty State - einheitliche Leeranzeige, damit keine Unterseite leer wirkt*/
+.empty_state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    grid-column: 1 / -1;
+    width: 100%;
+    padding: 48px 24px;
+    text-align: center;
+    color: #64748b;
+    border: 1px dashed #cbd5e1;
+    border-radius: 12px;
+    background-color: #f8fafc;
+}
+
+.empty_state_icon {
+    font-size: 32px;
+    line-height: 1;
+    opacity: 0.85;
+}
+
+.empty_state_title {
+    margin: 0;
+    font-weight: 600;
+    color: #475569;
+}
+
+.empty_state_hint {
+    margin: 0;
+    max-width: 40ch;
+    font-size: 13px;
+    color: #94a3b8;
+}
+/*endregion*/
+
+/*region Page Header - einheitliche, immer zentrierte Seitenueberschrift*/
+/* Ersetzt ".datacockpit_landingpage_head" / "_description" und ".papierkorb_head".
+   Bewusst KEINE grid-column/justify-self-Regeln wie im Original: Die alte Klasse
+   war auf das zweispaltige Grid der Frontpage angewiesen (".datacockpit_frontpage_headline"),
+   wodurch sie auf appLikesSite/commentLikesSite/papierkorbSite - wo dieses Grid nicht
+   existiert - je nach Seite unterschiedlich bzw. linksbuendig landete. ".page_header" ist
+   ein eigenstaendiger Flex-Block mit fester max-width und "margin: 0 auto" und zentriert
+   sich dadurch unabhaengig vom umgebenden Layout IMMER gleich. */
+.page_header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    max-width: 640px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.page_header_title {
+    margin: 0;
+    color: #b91c1c;
+    font-size: x-large;
+    font-weight: 700;
+}
+
+.page_header_description {
+    margin: 0;
+    font-size: smaller;
+    color: #475569;
+    line-height: 1.5;
 }
 /*endregion*/
