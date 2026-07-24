@@ -6,7 +6,8 @@ html, body {
 }
 
 #element {
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
     margin: 0;
     padding: 0;
     width: 100%;
@@ -207,7 +208,9 @@ button{
 }
 .component_beschreibung{
     grid-area: 2 / 1 / 2 / 1  ;
+    min-width: 0;
     overflow-wrap: break-word ;
+    word-break: break-word;
     border-bottom: 1px solid lightgray;
 
 }
@@ -287,11 +290,12 @@ button{
      padding: 12px 14px;
  }
 .ladeandere_hint {
-    font-size: 12px;
+    font-size: 14px;
     line-height: 1.5;
     color: #64748b;
     font-style: italic;
-    max-width: 46ch;
+    width: 100%;
+    max-width: none;
 }
 .ladeandere_buttons {
     display: grid;
@@ -1004,6 +1008,26 @@ code {
 }
 /*endregion*/
 /*region Papierkorb*/
+/* Papierkorb nutzt dasselbe Basis-Grid wie die Frontpage (".datacockpit_frontpage_container"),
+   braucht aber weder den 5%-Spacer ganz oben noch die 10%-Zeile der Filterleiste (die es hier
+   gar nicht gibt) - beide sorgten nur für unnötigen Leerraum über und unter der Kopfzeile.
+   Eigenes, kompakteres Zeilenraster: alles rückt nach oben, und der Inhalt (trash_content,
+   grid-row 4/4) rückt näher an die Kopfzeile (papierkorb_header, grid-row 2/3) heran. */
+.papierkorb_container {
+    grid-template-rows: 1% minmax(220px, 16%) 1% auto;
+}
+
+/* Größere Schrift nur auf der Papierkorb-Seite - andere Seiten nutzen dieselben
+   Basis-Klassen (.page_header_title/_description, .section_title) unverändert. */
+.papierkorb_header .page_header_title {
+    font-size: 28px;
+}
+.papierkorb_header .page_header_description {
+    font-size: 15px;
+}
+.trash_content .section_title {
+    font-size: 15px;
+}
 .papierkorb_header {
     grid-row: 2/3;
     grid-column: 1/3;
@@ -1042,7 +1066,7 @@ code {
 }
 
 .trash_content {
-    grid-row: 3/4;
+    grid-row: 4/4;
 }
 
 .trash_count {

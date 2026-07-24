@@ -467,27 +467,18 @@ export function frontpage(componentArray, instance) {
     const hasAnyApp = Array.isArray(componentArray) && componentArray.length > 0;
 
     // Filter-/Sortier-Zustand für die Suchleiste
-    const state = { titel: "", werkzeug: "", author: "", kategorie: "", sort: "" };
+    const state = { titel: "", werkzeug: "", sort: "" };
 
     const applyFilters = (list) => list.filter(comp => {
         const titelOk = !state.titel || (comp.Titel || "").toLowerCase().includes(state.titel.toLowerCase());
         const werkzeugOk = !state.werkzeug || (comp.Komponente || "").toLowerCase().includes(state.werkzeug.toLowerCase());
-        // "Ersteller" steht im aktuellen Datenmodell nicht garantiert auf jedem Eintrag - Fallback auf Config.creator.
-        const authorSource = comp.Ersteller || comp.Config?.creator || comp.Config?._?.creator || "";
-        const authorOk = !state.author || authorSource.toLowerCase().includes(state.author.toLowerCase());
-        // "Kategorie" ist aktuell kein Feld im dataArray-Modell - Filter greift nur, falls vorhanden.
-        const kategorieOk = !state.kategorie || (comp.Kategorie || "").toLowerCase().includes(state.kategorie.toLowerCase());
-        return titelOk && werkzeugOk && authorOk && kategorieOk;
+        return titelOk && werkzeugOk;
     });
 
     const applySort = (list) => {
         const sorted = [...list];
         if (state.sort === "alphabetisch") {
             sorted.sort((a, b) => (a.Titel || "").localeCompare(b.Titel || ""));
-        } else if (state.sort === "neuste") {
-            // created_at ist aktuell nicht Teil des dataArray-Modells - fehlt es, bleibt die
-            // Reihenfolge unverändert (kein Crash, nur kein sichtbarer Effekt).
-            sorted.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
         }
         return sorted;
     };
@@ -540,21 +531,10 @@ export function frontpage(componentArray, instance) {
                 </div>
 
                 <div class="filter-group">
-                    <label for="author">Author</label>
-                    <input type="text" id="author" class="eingabe" @input=${handleInput} />
-                </div>
-
-                <div class="filter-group">
-                    <label for="kategorie">Kategorie</label>
-                    <input type="text" id="kategorie" class="eingabe" @input=${handleInput} />
-                </div>
-
-                <div class="filter-group">
                     <label for="sortieren">Sortieren nach</label>
                     <select id="sortieren" @change=${handleSort}>
-                        <option value="" disabled selected hidden></option>
+                        <option value="" selected></option>
                         <option value="alphabetisch">Alphabetisch</option>
-                        <option value="neuste">neuste zuerst</option>
                     </select>
                 </div>
             </div>
