@@ -400,7 +400,10 @@ export function componentSite(data, comp, instance) {
                             </td>
                         </tr>
                         <tr>
-                            <td> <button @click=${() => instance.deleteComponent(data)}> delete</button></td>
+                            <td> <button @click=${() => {
+                                if (!confirm("Diese App inklusive aller zugehörigen Bewertungen, Kommentare und Konfigurationen endgültig löschen? Das kann nicht rückgängig gemacht werden.")) return;
+                                instance.deleteComponent(data);
+                            }}> delete</button></td>
                             <td> <button @click=${() => instance.updateData(data)}> update </button> </td>
                         </tr>
                     </table>
@@ -627,8 +630,16 @@ export function commentSite(data, instance) {
                                 <div class="comment_date">${c.created_at || ''}</div>
                             </div>
                             ${isOwnComment(c) ? html`
-                                <button class="delete_btn" @click=${() => { //Kommentar löschen und ohne render-Update erstmal verschwinden lassen
-                                    instance.deleteComment("dms2-comment-data", c);
+                                <button class="delete_btn" @click=${async () => { //Kommentar löschen und ohne render-Update erstmal verschwinden lassen
+                                    if (!confirm("Diesen Kommentar endgültig löschen? Das kann nicht rückgängig gemacht werden.")) return;
+                                    const success = await instance.deleteComment("dms2-comment-data", c);
+                                    if (!success) return;
+                                    // Bugfix: commentEntries ist dieselbe Array-Referenz wie "data.data" in
+                                    // instance.dataArray - bisher wurde hier nur die DOM-Karte ausgeblendet, der
+                                    // Eintrag blieb aber im Objekt stehen und tauchte nach Verlassen/Zurückkehren
+                                    // der Seite wieder auf. Jetzt wird er auch tatsächlich aus dem Array entfernt.
+                                    const idx = commentEntries.indexOf(c);
+                                    if (idx !== -1) commentEntries.splice(idx, 1);
                                     const card = instance.element?.querySelector(`#comment-${index}`);
                                     if (card) card.style.display = "none";
                                 }}>
@@ -665,8 +676,16 @@ export function commentSite(data, instance) {
                                 <div class="comment_date">${c.created_at || ''}</div>
                             </div>
                             ${isOwnComment(c) ? html`
-                                <button class="delete_btn" @click=${() => {
-                                    instance.deleteComment("dms2-comments", c);
+                                <button class="delete_btn" @click=${async () => {
+                                    if (!confirm("Diesen Kommentar endgültig löschen? Das kann nicht rückgängig gemacht werden.")) return;
+                                    const success = await instance.deleteComment("dms2-comments", c);
+                                    if (!success) return;
+                                    // Bugfix: kommentareList ist dieselbe Array-Referenz wie "data.Kommentare" in
+                                    // instance.dataArray - bisher wurde hier nur die DOM-Karte ausgeblendet, der
+                                    // Eintrag blieb aber im Objekt stehen und tauchte nach Verlassen/Zurückkehren
+                                    // der Seite wieder auf. Jetzt wird er auch tatsächlich aus dem Array entfernt.
+                                    const idx = kommentareList.indexOf(c);
+                                    if (idx !== -1) kommentareList.splice(idx, 1);
                                     const card = instance.element?.querySelector(`#realcomment-${index}`);
                                     if (card) card.style.display = "none";
                                 }}>
@@ -927,10 +946,19 @@ export function appTile(componentArray, instance, like = false) {
                         ${like ? html`
                             <button class="delete_btn" title="Aus deinen Likes entfernen" @click=${async (e) => {
                                 e.stopPropagation();
+                                if (!confirm("Dieses Like wirklich entfernen? Das kann nicht rückgängig gemacht werden.")) return;
                                 const card = instance.element?.querySelector(`#applike-${index}`);
                                 if (card) card.style.display = "none";
                                 const removed = await instance.deleteAppLike(comp.Key);
-                                if (!removed && card) card.style.display = ""; // bei Fehler wieder einblenden
+                                if (!removed) {
+                                    if (card) card.style.display = ""; // bei Fehler wieder einblenden
+                                    return;
+                                }
+                                // Bugfix: "list" ist dieselbe Array-Referenz wie instance.valuableApps.get("appRatings")
+                                // - bisher wurde hier nur die DOM-Karte ausgeblendet, der Eintrag blieb aber im Objekt
+                                // stehen und tauchte nach Verlassen/Zurückkehren der Seite (z. B. über Home) wieder auf.
+                                const idx = list.indexOf(comp);
+                                if (idx !== -1) list.splice(idx, 1);
                             }}>
                                 🗑
                             </button>
@@ -942,7 +970,7 @@ export function appTile(componentArray, instance, like = false) {
     `;
 }
 
-export function commentTile(commentEntries, instance, emptyText) {
+export function commentTile(commentEntries, instance, emptyText, variant) {
 
     // Wie bei appTile: die Liste kann undefined sein, wenn der Schlüssel in
     // valuableApps fehlt. Ohne diesen Schutz wirft flatMap() und die Seite
@@ -1024,13 +1052,41 @@ export function commentTile(commentEntries, instance, emptyText) {
         return storeName || "dms2-comments";
     };
 
+    // Vergleicht einen rohen Kommentar-Eintrag (aus comp.Kommentar) mit dem geflachten
+    // Kommentar-Objekt aus "comments" (siehe flatMap oben). Reine Referenzgleichheit (===)
+    // funktioniert hier NICHT, weil flatMap für jeden Eintrag ein neues Objekt per Spread
+    // erzeugt - verglichen wird deshalb über den fachlichen Schlüssel ".key".
+    const sameEntry = (rawEntry, flattenedComment) => {
+        if (rawEntry === flattenedComment) return true;
+        if (rawEntry?.key === undefined || flattenedComment?.key === undefined) return false;
+        return JSON.stringify(rawEntry.key) === JSON.stringify(flattenedComment.key);
+    };
+
     const deleteComment = async (comment, index) => {
+        if (!confirm("Diesen Eintrag endgültig löschen? Das kann nicht rückgängig gemacht werden.")) return;
         const collection = resolveCollection(comment);
         const success = await instance.deleteComment(collection, comment);
         if (!success) {
             console.warn(`[commentTile] Löschen fehlgeschlagen (collection=${collection}).`);
             return;
         }
+
+        // Bugfix: Bisher wurde hier nur die Karte im DOM ausgeblendet - der gelöschte
+        // Eintrag blieb aber weiterhin in "instance.valuableApps" stehen (die Map wird nur
+        // bei einem kompletten fetchData() neu aufgebaut). Verließ man die Seite (z. B. über
+        // Home) und kam zurück, wurde die Seite mit demselben, veralteten Datensatz neu
+        // gerendert - der Eintrag "kam zurück". Deshalb hier zusätzlich direkt aus dem
+        // Objekt entfernen, damit der In-Memory-Zustand zur echten Datenlage passt.
+        if (variant && instance.valuableApps?.has(variant)) {
+            const updatedList = instance.valuableApps.get(variant)
+                .map(comp => ({
+                    ...comp,
+                    Kommentar: (comp.Kommentar || []).filter(k => !sameEntry(k, comment))
+                }))
+                .filter(comp => (comp.Kommentar || []).length > 0);
+            instance.valuableApps.set(variant, updatedList);
+        }
+
         const card = instance.element?.querySelector(`#comment-${index}`);
         if (card) card.style.display = "none";
     }
@@ -1149,7 +1205,7 @@ export function commentLikesSite(componentArray, instance, variant) {
             </div>
 
             <div class="datacockpit_component_container">
-                ${commentTile(componentArray, instance, text.empty)}
+                ${commentTile(componentArray, instance, text.empty, variant)}
             </div>
         </div>
     `;
